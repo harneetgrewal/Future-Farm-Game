@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Future Farm - Interactive Farming Education Game</title>
+<style>
+  :root {
+    --bg: #0F1923;
+    --panel: #162030;
+    --header: #1E3A5F;
+    --btn-green: #1A6B3A;
+    --btn-green-h: #228B4A;
+    --btn-blue: #1A4A7A;
+    --btn-blue-h: #235FAA;
+    --btn-amber: #7A4A00;
+    --btn-amber-h: #AA6600;
+    --btn-gray: #2A3A4A;
+    --btn-gray-h: #3A5060;
+    --yellow: #FFD700;
+    --green: #50E878;
+    --red: #FF6B6B;
+    --blue: #87CEEB;
+    --gray: #8A9BAB;
+    --white: #F0F4F8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .screen { display: none; flex-direction: column; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  .game-header {
+    background: var(--header);
+    padding: 14px 20px 10px;
+    text-align: center;
+  }
+  .game-header h1 { color: var(--yellow); font-size: 1.3rem; letter-spacing: 2px; }
+  .game-header .sub { color: var(--blue); font-size: 0.75rem; margin-top: 4px; }
+
+  .content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 18px;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--white);
+    transition: background 0.15s, transform 0.1s;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .btn:hover { filter: brightness(1.25); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-green { background: var(--btn-green); }
+  .btn-blue { background: var(--btn-blue); }
+  .btn-amber { background: var(--btn-amber); }
+  .btn-gray { background: var(--btn-gray); }
+  .btn-full { width: 100%; display: block; margin-bottom: 10px; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 16px 0; }
+  .badge {
+    background: var(--btn-blue);
+    color: var(--white);
+    padding: 6px 14px;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: bold;
+  }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; width: 100%; }
+  .char-card {
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 2px solid transparent;
+  }
+  .char-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+  .char-card .card-header { padding: 12px; text-align: center; font-size: 1.1rem; font-weight: bold; }
+  .char-card .card-body { padding: 12px; }
+  .char-card .card-emoji { font-size: 2rem; display: block; text-align: center; margin-bottom: 6px; }
+  .char-card .card-desc { color: var(--blue); font-size: 0.78rem; margin-bottom: 8px; }
+  .char-card .card-bonus { color: var(--green); font-size: 0.75rem; }
+  .char-card .card-btn { margin-top: 10px; width: 100%; }
+
+  .region-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; width: 100%; }
+  .region-card {
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s;
+    border: 2px solid transparent;
+  }
+  .region-card:hover { transform: translateY(-3px); }
+  .region-card .region-header { padding: 16px; text-align: center; font-size: 1.1rem; font-weight: bold; }
+  .region-card .region-body { padding: 14px; }
+  .region-card .region-crops { color: var(--yellow); font-size: 0.78rem; margin-bottom: 8px; }
+  .region-card .region-desc { color: var(--blue); font-size: 0.78rem; }
+
+  .crop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; width: 100%; }
+  .crop-card {
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s;
+    border: 2px solid transparent;
+  }
+  .crop-card:hover { transform: translateY(-2px); }
+  .crop-card .crop-header { background: var(--btn-green); padding: 10px; text-align: center; font-weight: bold; font-size: 0.9rem; }
+  .crop-card .crop-body { padding: 10px; }
+  .crop-card .crop-season { color: var(--yellow); font-size: 0.72rem; margin-bottom: 6px; }
+  .crop-card .crop-desc { color: var(--blue); font-size: 0.7rem; }
+
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #1A2A3A;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.4s ease; }
+
+  .step-info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-bottom: 14px; }
+  .info-box { background: #0E2030; border-radius: 6px; padding: 10px 14px; }
+  .info-box .label { color: var(--gray); font-size: 0.7rem; }
+  .info-box .value { color: var(--white); font-size: 0.9rem; font-weight: bold; margin-top: 2px; }
+  .info-box .sub-value { color: var(--blue); font-size: 0.72rem; }
+
+  .choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.88rem;
+    color: var(--white);
+    text-align: left;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .choice-btn:hover { filter: brightness(1.2); transform: translateX(3px); }
+  .choice-btn .choice-letter { font-size: 1.2rem; font-weight: bold; min-width: 28px; text-align: center; }
+  .choice-btn-a { background: var(--btn-green); }
+  .choice-btn-b { background: var(--btn-blue); }
+  .choice-btn-c { background: var(--btn-amber); }
+
+  .feedback-banner {
+    width: 100%;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .feedback-correct { background: #0A4A1A; color: var(--green); }
+  .feedback-okay { background: #4A3A00; color: var(--yellow); }
+  .feedback-wrong { background: #4A0A0A; color: var(--red); }
+
+  .feedback-text-box { padding: 16px; line-height: 1.7; font-size: 0.85rem; }
+  .feedback-line-correct { color: var(--green); font-weight: bold; }
+  .feedback-line-okay { color: var(--yellow); font-weight: bold; }
+  .feedback-line-wrong { color: var(--red); font-weight: bold; }
+  .feedback-line-fact { color: var(--blue); }
+  .feedback-line-normal { color: var(--white); }
+
+  .score-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 14px; }
+  .score-box { background: #0E2030; border-radius: 6px; padding: 10px; text-align: center; }
+  .score-box .score-label { color: var(--gray); font-size: 0.7rem; }
+  .score-box .score-val { font-size: 1.1rem; font-weight: bold; margin-top: 4px; }
+
+  .grade-display {
+    text-align: center;
+    padding: 20px;
+    background: var(--panel);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+  .grade-letter { font-size: 4rem; font-weight: bold; line-height: 1; }
+  .grade-msg { font-size: 0.9rem; margin-top: 8px; }
+
+  .choices-summary { width: 100%; }
+  .choice-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #1A2A3A;
+    font-size: 0.78rem;
+  }
+  .choice-marker-ok { color: var(--green); font-weight: bold; }
+  .choice-marker-no { color: var(--red); font-weight: bold; }
+  .choice-effect { font-size: 0.75rem; }
+  .effect-pos { color: var(--green); }
+  .effect-neg { color: var(--red); }
+
+  .advisor-text { line-height: 1.8; font-size: 0.85rem; white-space: pre-wrap; }
+  .advisor-yellow { color: var(--yellow); font-weight: bold; }
+  .advisor-blue { color: var(--blue); }
+  .advisor-green { color: var(--green); }
+
+  .welcome-title { color: var(--yellow); font-size: 2rem; font-weight: bold; text-align: center; letter-spacing: 3px; margin-bottom: 8px; }
+  .welcome-sub { color: var(--blue); text-align: center; font-size: 0.88rem; margin-bottom: 6px; }
+  .welcome-region { color: var(--green); text-align: center; font-size: 0.82rem; margin-bottom: 16px; }
+  .welcome-desc { text-align: center; color: var(--white); font-size: 0.82rem; line-height: 1.7; margin-bottom: 6px; }
+  .footer-note { color: var(--gray); text-align: center; font-size: 0.7rem; margin-top: 10px; }
+
+  h2 { color: var(--yellow); font-size: 1rem; margin-bottom: 6px; letter-spacing: 1px; }
+  h3 { color: var(--white); font-size: 0.9rem; margin-bottom: 4px; }
+  p { font-size: 0.82rem; color: var(--white); }
+
+  .section-title { color: var(--white); font-size: 1rem; font-weight: bold; text-align: center; margin: 14px 0 12px; }
+
+  .student-bonus {
+    background: #0A1A3A;
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--blue);
+    font-size: 0.78rem;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    .score-row { grid-template-columns: 1fr 1fr; }
+    .step-info-row { grid-template-columns: 1fr; }
+    .card-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: WELCOME -->
+<div id="screen-welcome" class="screen active">
+  <div class="game-header">
+    <h1>🌾 FUTURE FARM</h1>
+    <div class="sub">Interactive Farming Education Game</div>
+  </div>
+  <div class="content">
+    <div class="welcome-title">FUTURE FARM</div>
+    <div class="welcome-sub">Interactive Farming Education Game</div>
+    <div class="welcome-region">Punjab, India &nbsp;+&nbsp; USA</div>
+    <div class="panel">
+      <div class="welcome-desc">
+        Learn real farming step-by-step through interactive choices.<br>
+        Choose your character, region, crop and make decisions at every stage —<br>
+        variety, field prep, sowing, irrigation, fertilizer, pest control, machinery and harvest.<br><br>
+        Every choice teaches you the <strong style="color:var(--yellow)">SCIENCE</strong> and
+        <strong style="color:var(--green)">FUTURE TECHNOLOGY</strong><br>
+        behind modern farming in Punjab and USA!
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge">🌾 10 Crops</span>
+      <span class="badge">📋 9 Steps Each</span>
+      <span class="badge">🔬 Real Tech Facts</span>
+      <span class="badge">🤖 AI Advisor</span>
+      <span class="badge">📊 Yield Scoring</span>
+    </div>
+    <button class="btn btn-green" style="padding:16px 60px;font-size:1.1rem;margin-top:8px;" onclick="goTo('character')">▶ START GAME</button>
+    <div class="footer-note" style="margin-top:16px;">Built for Code in Place Final Project &nbsp;|&nbsp; Punjab + USA Agriculture</div>
+  </div>
+</div>
+
+<!-- SCREEN 2: CHARACTER -->
+<div id="screen-character" class="screen">
+  <div class="game-header">
+    <h1>CHOOSE YOUR CHARACTER</h1>
+    <div class="sub">Your character determines your farming background and bonus</div>
+  </div>
+  <div class="content">
+    <div class="section-title">Who are you?</div>
+    <div class="card-grid" id="char-grid"></div>
+  </div>
+</div>
+
+<!-- SCREEN 3: REGION -->
+<div id="screen-region" class="screen">
+  <div class="game-header">
+    <h1>CHOOSE YOUR REGION</h1>
+    <div class="sub" id="region-sub"></div>
+  </div>
+  <div class="content">
+    <div class="section-title">Where is your farm?</div>
+    <div class="region-grid" id="region-grid"></div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="goTo('character')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 4: CROP -->
+<div id="screen-crop" class="screen">
+  <div class="game-header">
+    <h1>CHOOSE YOUR CROP</h1>
+    <div class="sub" id="crop-sub"></div>
+  </div>
+  <div class="content">
+    <div class="section-title">Select which crop you want to grow and learn:</div>
+    <div class="crop-grid" id="crop-grid"></div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-gray" onclick="goTo('region')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 5: STEP -->
+<div id="screen-step" class="screen">
+  <div class="game-header">
+    <h1 id="step-title"></h1>
+    <div class="sub" id="step-sub"></div>
+  </div>
+  <div class="content">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="step-info-row">
+      <div class="info-box">
+        <div class="label">Crop</div>
+        <div class="value" id="step-crop-name"></div>
+        <div class="sub-value" id="step-crop-season"></div>
+      </div>
+      <div class="info-box">
+        <div class="label">Character</div>
+        <div class="value" id="step-char-name"></div>
+        <div class="sub-value" id="step-progress-label"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 id="step-question"></h2>
+    </div>
+    <div id="choices-container" style="width:100%;"></div>
+    <div style="color:var(--gray);font-size:0.78rem;text-align:center;margin-bottom:10px;">Click A, B or C to make your farming decision</div>
+    <div class="btn-row">
+      <button class="btn btn-gray" style="font-size:0.78rem;padding:8px 16px;" onclick="goTo('result')">Quit Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 6: FEEDBACK -->
+<div id="screen-feedback" class="screen">
+  <div class="game-header">
+    <h1 id="feedback-title"></h1>
+    <div class="sub" id="feedback-sub"></div>
+  </div>
+  <div class="content">
+    <div class="feedback-banner" id="feedback-banner"></div>
+    <div class="panel feedback-text-box" id="feedback-text"></div>
+    <div class="score-row">
+      <div class="score-box">
+        <div class="score-label">Yield Effect</div>
+        <div class="score-val" id="fb-effect"></div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">Current Yield</div>
+        <div class="score-val" style="color:var(--yellow)" id="fb-yield"></div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">Tech Score</div>
+        <div class="score-val" style="color:var(--blue)" id="fb-tech"></div>
+      </div>
+    </div>
+    <div id="student-bonus-box" class="student-bonus" style="display:none;">
+      📚 Student bonus: Visit agrilearner.com or PAU Ludhiana website for more on this topic!
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-amber" onclick="restartCrop()">↺ Restart Crop</button>
+      <button class="btn btn-green" id="next-btn" onclick="nextStep()"></button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 7: RESULT -->
+<div id="screen-result" class="screen">
+  <div class="game-header">
+    <h1 id="result-title"></h1>
+    <div class="sub" id="result-sub"></div>
+  </div>
+  <div class="content">
+    <div class="grade-display">
+      <div class="grade-letter" id="result-grade"></div>
+      <div class="grade-msg" id="result-grade-msg"></div>
+    </div>
+    <div class="score-row" style="margin-bottom:16px;">
+      <div class="score-box">
+        <div class="score-label">Yield Score</div>
+        <div class="score-val" style="color:var(--yellow)" id="result-yield"></div>
+        <div style="color:var(--gray);font-size:0.7rem;">Base: 100 pts</div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">TOTAL SCORE</div>
+        <div class="score-val" style="color:var(--white);font-size:1.4rem;" id="result-total"></div>
+        <div style="color:var(--gray);font-size:0.7rem;">Yield + Tech</div>
+      </div>
+      <div class="score-box">
+        <div class="score-label">Tech Score</div>
+        <div class="score-val" style="color:var(--blue)" id="result-tech"></div>
+        <div style="color:var(--gray);font-size:0.7rem;">10 pts / correct</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:10px;">Your Decisions:</h3>
+      <div class="choices-summary" id="result-choices"></div>
+    </div>
+    <div class="btn-row" style="margin-top:6px;">
+      <button class="btn btn-blue" onclick="goTo('advisor')">🤖 Ask AI Advisor</button>
+      <button class="btn btn-green" onclick="goTo('crop')">🌱 Try Another Crop</button>
+      <button class="btn btn-amber" onclick="goTo('character')">👤 Change Character</button>
+    </div>
+    <div class="footer-note">Game by Code in Place 2025 &nbsp;|&nbsp; Agriculture data from PAU Ludhiana + USDA + FAO</div>
+  </div>
+</div>
+
+<!-- SCREEN 8: ADVISOR -->
+<div id="screen-advisor" class="screen">
+  <div class="game-header">
+    <h1>🤖 AI FARMING ADVISOR</h1>
+    <div class="sub">Ask anything about your crop, results or modern farming technology</div>
+  </div>
+  <div class="content">
+    <div class="panel">
+      <div class="advisor-text" id="advisor-text"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gray" onclick="goTo('result')">← Back to Results</button>
+      <button class="btn btn-green" onclick="goTo('welcome')">▶ Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ALL GAME DATA (moved from Python app.py) ──
+const gameData = {
+  characters: {
+    "Traditional Farmer": { color: "#8B6914", desc: "You use time-tested farming methods. Will you embrace modern tech?", bonus: "Experience: +5% base yield on all crops", emoji: "👨‍🌾" },
+    "Modern Farmer": { color: "#1A6B3A", desc: "You use latest machinery and inputs. Yield-focused and tech-ready.", bonus: "Machinery: +10% yield bonus when choosing modern equipment", emoji: "🚜" },
+    "Agricultural Scientist": { color: "#1A4A7A", desc: "You have deep knowledge of agronomy and research. Precision is key.", bonus: "Research: +15% when choosing scientifically optimal answer", emoji: "🔬" },
+    "Agriculture Student": { color: "#6B1A6B", desc: "You are learning everything from scratch. Every step teaches you something new!", bonus: "Learning: Get extra tech facts at every step", emoji: "📚" }
+  },
+  regions: {
+    "Punjab, India": ["Wheat (Punjab)", "Rice (Punjab)", "Cotton (Punjab)", "Maize (Punjab)", "Mustard (Punjab)"],
+    "USA": ["Corn (USA)", "Soybean (USA)", "Sunflower (USA)", "Alfalfa (USA)"]
+  },
+  crops: {
+    "Wheat (Punjab)": {
+      region: "Punjab, India", season: "Rabi (Oct - Apr)",
+      description: "Most important crop of Punjab. Grown in 85% of rabi area.",
+      steps: [
+        { name: "Choose Variety", question: "Which wheat variety will you sow?", choices: ["PBW-343 (old popular)", "HD-3086 (heat tolerant)", "DBW-222 (latest high yield)"], correct: 2, okay: 1, feedback: ["WRONG: PBW-343 is old and prone to yellow rust disease. Yield only 45 q/acre.\nModern fact: PAU recommends DBW-222 which gives 22% more yield and resists rust!", "OKAY: HD-3086 is heat tolerant but not the top yielder in Punjab.\nModern fact: DBW-222 has been developed using genomic selection technology at ICAR.", "CORRECT! DBW-222 is the latest variety giving 55-60 q/acre.\nFuture tech: Scientists now use AI and DNA mapping to breed varieties in 3 years instead of 10!"], yield_effect: [-15, -5, 10] },
+        { name: "Prepare Field", question: "How will you prepare your field?", choices: ["Deep plough 3 times (old method)", "Rotavator once", "Laser land leveller + Happy Seeder"], correct: 2, okay: 1, feedback: ["WRONG: Deep ploughing 3 times burns 15 litres diesel per acre. Expensive and slow!\nModern fact: Laser levelling saves 25-30% irrigation water by making field perfectly flat.", "OKAY: Rotavator is faster but field may not be level, water pools unevenly.\nModern fact: Uneven fields waste up to 40% of irrigation water in Punjab.", "CORRECT! Laser levelling + Happy Seeder is best.\nFuture tech: GPS-guided laser levellers now level a field 10x more accurately than human eye!"], yield_effect: [-10, -3, 12] },
+        { name: "Sowing", question: "When will you sow wheat seeds?", choices: ["October 15 (too early)", "November 5 (ideal window)", "December 1 (late sowing)"], correct: 1, okay: 0, feedback: ["OKAY: Slightly early. Crop may face aphid attack in warm weather.\nModern fact: PAU advises Nov 1-15 as ideal sowing window for maximum yield.", "CORRECT! Nov 1-15 is the perfect sowing window for Punjab wheat.\nFuture tech: Smart weather apps now give farmers day-by-day sowing advisories using AI!", "WRONG: Late sowing after Nov 25 reduces yield by 30-40 kg per day delay!\nModern fact: Each day late after Nov 25 costs 1.5% yield loss due to shorter grain fill period."], yield_effect: [-5, 10, -20] },
+        { name: "Irrigation", question: "How many irrigations will you give wheat?", choices: ["3 irrigations (less water)", "5-6 irrigations at critical stages", "10+ irrigations (flood every week)"], correct: 1, okay: 0, feedback: ["WRONG: Only 3 irrigations will cause moisture stress at grain filling stage.\nModern fact: Wheat needs 5 critical irrigations: CRI, tillering, jointing, heading, grain fill.", "CORRECT! 5-6 irrigations at critical stages is perfect.\nFuture tech: IoT soil moisture sensors now tell farmers EXACTLY when soil needs water - saves 35% water!", "WRONG: Over-irrigation causes waterlogging, disease and nitrogen leaching!\nModern fact: Punjab farmers waste 60% groundwater on over-irrigation. Water table drops 1m/year!"], yield_effect: [-18, 12, -12] },
+        { name: "Fertilizer", question: "Which fertilizer plan will you follow?", choices: ["Only Urea (nitrogen only)", "DAP at sowing + Urea split in 2 doses", "NPK 12:32:16 + micronutrients + Zinc"], correct: 2, okay: 1, feedback: ["WRONG: Only nitrogen causes lodging (crop falls down) and reduces protein.\nModern fact: Wheat needs N+P+K+Zinc. Missing zinc affects 40% Punjab wheat fields!", "OKAY: DAP + Urea is standard but misses potassium and micronutrients.\nModern fact: Soil health cards from government show exact fertilizer needed for YOUR field.", "CORRECT! Balanced NPK + Zinc gives best yield and grain quality.\nFuture tech: Variable rate fertilizer applicators use GPS soil maps to apply different doses in different zones!"], yield_effect: [-12, -2, 15] },
+        { name: "Spray / Pest Control", question: "Yellow rust disease spots appear. What do you do?", choices: ["Ignore it, hope it goes away", "Spray Propiconazole fungicide immediately", "Use drone to spray and scout whole field"], correct: 2, okay: 1, feedback: ["WRONG: Yellow rust spreads in 3 days and can destroy 70% of crop if ignored!\nModern fact: Yellow rust caused 10 lakh crore damage in 2020 across North India.", "OKAY: Manual spraying works but you may miss patches and the drone is safer.\nModern fact: Tractor boom sprayers cover 30 acres/day vs 3 acres/day for manual spraying.", "CORRECT! Drone scouts entire field and sprays 8x faster than manual!\nFuture tech: AI-powered drones now DETECT yellow rust 7 days before human eye can see it!"], yield_effect: [-35, 5, 15] },
+        { name: "Machinery", question: "How will you harvest your wheat?", choices: ["Manual sickle + thresher", "Old combine harvester", "Modern GPS combine harvester"], correct: 2, okay: 1, feedback: ["WRONG: Manual harvest takes 20 days. Crop shatter loss is 8-10%.\nModern fact: Punjab today harvests 98% wheat by combine in just 2-3 days per farm!", "OKAY: Old combine works but wastes 3-4% grain and is slow.\nModern fact: New combines auto-adjust cylinder speed based on crop moisture sensor readings.", "CORRECT! GPS combine harvester is fastest and wastes least grain.\nFuture tech: John Deere X9 combine uses AI to adjust 8 settings automatically while harvesting!"], yield_effect: [-10, 0, 12] },
+        { name: "Monitor Crop", question: "How will you monitor your crop health weekly?", choices: ["Walk field once a month", "Walk field every week manually", "Use drone + smartphone app weekly"], correct: 2, okay: 1, feedback: ["WRONG: Monthly monitoring means pest/disease is already serious before you see it!\nModern fact: Most crop diseases double every 3 days in warm humid weather.", "OKAY: Weekly walking is good but you cover only 10% of field properly.\nModern fact: A drone surveys 100 acres in 20 minutes giving full crop health map!", "CORRECT! Drone + app gives NDVI health map of entire field every week!\nFuture tech: Satellite crop monitoring now available FREE to farmers via Kisan Suvidha app!"], yield_effect: [-8, 3, 10] },
+        { name: "Harvest & Storage", question: "Wheat is ready. What moisture % should you harvest at?", choices: ["25% moisture (too wet)", "12-14% moisture (ideal)", "8% moisture (too dry, wait longer)"], correct: 1, okay: 2, feedback: ["WRONG: Harvesting at 25% moisture causes fungal growth in storage. Grain rots!\nModern fact: Wet grain stored in gunny bags loses 15% value from mold within 2 weeks.", "CORRECT! 12-14% moisture is perfect for combine harvest and safe storage.\nFuture tech: Handheld moisture meters cost only Rs 1500 and save lakhs in storage losses!", "OKAY: 8% is safe for storage but waiting too long risks bird damage and shattering.\nModern fact: Delayed harvest in Punjab costs 200 kg/acre loss from bird flocks in April!"], yield_effect: [-20, 15, -5] }
+      ]
+    },
+    "Rice (Punjab)": {
+      region: "Punjab, India", season: "Kharif (Jun - Nov)",
+      description: "Second most important crop. Punjab contributes 11% of India's rice. Major water user.",
+      steps: [
+        { name: "Choose Variety", question: "Which rice variety will you grow?", choices: ["PUSA-44 (long duration 160 days)", "PR-126 (short duration 123 days)", "PR-121 (medium, good yield)"], correct: 1, okay: 2, feedback: ["WRONG: PUSA-44 takes 160 days and uses 6 extra irrigations. Government is banning it!\nModern fact: Punjab Govt banned PUSA-44 in 2024 to save groundwater. Heavy fine for growing it!", "CORRECT! PR-126 takes only 123 days, saves 6 irrigations, same yield!\nFuture tech: New varieties developed using Speed Breeding technology at PAU take only 2 seasons to develop!", "OKAY: PR-121 is good but 15 days longer than PR-126 - uses more water.\nModern fact: Each extra day of rice growth costs 1 irrigation worth of groundwater in Punjab."], yield_effect: [-20, 15, 5] },
+        { name: "Prepare Field", question: "How will you prepare your paddy field?", choices: ["Flood field and puddle soil", "Dry tillage + direct seeded rice (DSR)", "Raised bed planting"], correct: 1, okay: 2, feedback: ["WRONG: Traditional puddling destroys soil structure and uses 40% more water!\nModern fact: Direct Seeded Rice (DSR) saves 15-20 irrigations and Rs 5000/acre in labour.", "CORRECT! DSR is revolutionary - saves water, time and labour!\nFuture tech: GPS-guided DSR drills place seeds at exact depth and spacing for uniform germination!", "OKAY: Raised beds reduce waterlogging but setup cost is high for small farms.\nModern fact: Raised bed rice in Philippines gives 20% more yield with 30% less water."], yield_effect: [-15, 15, 3] },
+        { name: "Transplanting / Sowing", question: "When will you transplant rice seedlings?", choices: ["May 20 (too early, against law)", "June 13-20 (ideal legal window)", "July 15 (too late)"], correct: 1, okay: 2, feedback: ["WRONG: Early transplanting before June 10 is ILLEGAL in Punjab! Rs 50,000 fine!\nModern fact: Punjab Preservation of Sub-Soil Water Act 2009 prohibits early transplanting to save water.", "CORRECT! June 13-20 transplanting gives maximum yield and saves electricity.\nFuture tech: Apps now send SMS alerts to farmers on exact permitted transplanting dates district-wise!", "OKAY: July transplanting is safe but reduces yield by 8-10%.\nModern fact: Each week late transplanting after June 25 reduces rice yield by 150 kg/acre."], yield_effect: [-25, 15, -8] },
+        { name: "Irrigation", question: "How will you manage water in your rice field?", choices: ["Keep 5cm standing water always (flood)", "Alternate wetting and drying (AWD)", "Drip irrigation for rice"], correct: 1, okay: 2, feedback: ["WRONG: Continuous flooding uses 1200mm water per season. Punjab water table drops 1m/year!\nModern fact: Punjab is pumping groundwater 3x faster than rainfall recharges it. Crisis in 20 years!", "CORRECT! AWD saves 30% water with NO yield loss. IRRI proven technology!\nFuture tech: Cheap water tubes with markings now tell farmers exactly when to irrigate using AWD method!", "OKAY: Drip works but installation cost is Rs 60,000/acre - too high for most farmers.\nModern fact: Drip rice is common in Israel and gives 40% water saving but needs government subsidy."], yield_effect: [-10, 15, 5] },
+        { name: "Fertilizer", question: "How will you fertilize your rice crop?", choices: ["Heavy urea 3 bags/acre (excess N)", "Balanced NPK based on soil test", "Green manure + recommended NPK"], correct: 2, okay: 1, feedback: ["WRONG: Excess urea causes blast disease and lodging! Nitrogen pollution in water!\nModern fact: Punjab farmers apply 2x recommended urea dose - wasting Rs 3000 crore annually.", "OKAY: Soil test based NPK is good standard practice.\nModern fact: Only 15% Punjab farmers do soil testing. Rest over or under-fertilize their fields.", "CORRECT! Green manure + NPK builds soil health for long term high yields!\nFuture tech: Neem-coated urea releases nitrogen slowly matching crop need - 15% more efficient!"], yield_effect: [-12, 5, 15] },
+        { name: "Spray / Pest Control", question: "Brown plant hopper attack detected! What do you do?", choices: ["Spray any pesticide from market", "Use recommended Buprofezin/Ethofenprox as per PAU", "Release Tricogramma biological control"], correct: 1, okay: 2, feedback: ["WRONG: Random pesticides kill natural enemies and cause resurgence - 10x more hoppers!\nModern fact: Pesticide misuse in Malwa belt Punjab caused cancer cluster - called Cancer Train belt.", "CORRECT! PAU recommended pesticides target pest without harming natural enemies.\nFuture tech: AI apps like Plantix now identify pest from photo and recommend correct spray in seconds!", "OKAY: Biological control is excellent but too slow for heavy brown hopper attack.\nModern fact: Tricogramma cards cost Rs 300/acre and replace chemical spray in early pest stages."], yield_effect: [-20, 15, 3] },
+        { name: "Machinery", question: "How will you harvest your rice crop?", choices: ["Manual sickle cutting", "Reaper binder machine", "Self-propelled combine harvester"], correct: 2, okay: 1, feedback: ["WRONG: Manual harvest of 1 acre takes 30 workers and 3 days. Labour cost Rs 8000/acre!\nModern fact: Punjab faces acute farm labour shortage as workers move to cities.", "OKAY: Reaper binder is cheaper but grain still needs separate threshing.\nModern fact: Reaper + thresher operation costs Rs 3000/acre vs Rs 1800/acre for combine.", "CORRECT! Combine harvester does everything in 2 hours at Rs 1800/acre!\nFuture tech: Super SMS combine harvesters now have straw management attachments to avoid stubble burning!"], yield_effect: [-15, 0, 12] },
+        { name: "Monitor Crop", question: "How will you detect rice blast disease early?", choices: ["Wait for visible symptoms", "Check field edges weekly for first signs", "Use AI disease detection app + drone"], correct: 2, okay: 1, feedback: ["WRONG: By the time blast is visible, 30% crop is already infected! Too late!\nModern fact: Rice blast can destroy entire crop in 7 days in humid weather conditions.", "OKAY: Weekly checking catches disease early but you may miss inner field patches.\nModern fact: Field edges show disease 5-7 days before center due to higher humidity near borders.", "CORRECT! AI apps identify blast from leaf photo with 94% accuracy in seconds!\nFuture tech: Hyperspectral drone cameras detect disease stress before visible symptoms appear!"], yield_effect: [-20, 5, 15] },
+        { name: "Post-Harvest", question: "After harvesting, what will you do with rice straw?", choices: ["Burn the stubble (parali)", "Sell straw to paper mill or biogas plant", "Use Happy Seeder to sow next wheat"], correct: 2, okay: 1, feedback: ["WRONG: Stubble burning is illegal and causes Delhi smog crisis every winter!\nModern fact: Punjab burns 20 million tonnes parali per year causing AQI of 999 in November.", "OKAY: Selling straw earns Rs 1500/acre and solves disposal problem.\nModern fact: Straw has 80% of wheat nutrients - selling removes those nutrients from your field!", "CORRECT! Happy Seeder sows wheat directly into standing stubble - no burning needed!\nFuture tech: Biogas plants now pay farmers Rs 3000/acre to collect straw for green energy!"], yield_effect: [-15, 8, 15] }
+      ]
+    },
+    "Cotton (Punjab)": {
+      region: "Punjab, India", season: "Kharif (Apr - Nov)",
+      description: "Major cash crop of Malwa region Punjab. Known as white gold. Needs warm dry climate.",
+      steps: [
+        { name: "Choose Variety", question: "Which cotton variety will you plant?", choices: ["Desi cotton (low yield)", "Bt Cotton hybrid (bollworm resistant)", "Non-Bt conventional hybrid"], correct: 1, okay: 2, feedback: ["WRONG: Desi cotton yields only 8-10 quintals/acre. Very low income!\nModern fact: Bt cotton revolutionized India - pesticide use dropped 40% and yield doubled!", "CORRECT! Bt Cotton has built-in resistance to American bollworm.\nFuture tech: Second generation Bt Cotton with 2 Cry genes gives resistance to more pest species!", "WRONG: Non-Bt cotton needs 15+ pesticide sprays per season for bollworm control!\nModern fact: Before Bt cotton, bollworm alone caused Rs 1000 crore damage to Punjab cotton every year."], yield_effect: [-20, 15, -15] },
+        { name: "Prepare Field", question: "What is the ideal soil for cotton and how will you prepare it?", choices: ["Any soil, deep plough once", "Sandy loam, subsoil plough + FYM addition", "Heavy clay soil, waterlogging is fine"], correct: 1, okay: 0, feedback: ["OKAY: Deep ploughing helps but FYM addition is also important for sandy loam.\nModern fact: Cotton tap root goes 150cm deep - deep tillage allows better root penetration.", "CORRECT! Sandy loam with good drainage + FYM is perfect for cotton!\nFuture tech: Soil health cards now give cotton farmers GPS-tagged soil maps showing where to add organic matter!", "WRONG: Cotton HATES waterlogging! Clay soil causes root rot and boll drop!\nModern fact: 2019 Punjab cotton crop lost 60% due to unexpected floods in clay soil areas."], yield_effect: [-5, 15, -25] },
+        { name: "Sowing", question: "When should you sow cotton in Punjab?", choices: ["March (too cold)", "Late April to Mid May (ideal)", "June (too late for long season)"], correct: 1, okay: 2, feedback: ["WRONG: March sowing fails due to cold nights below 15C. Seeds rot in soil!\nModern fact: Cotton seed germinates only above 18C soil temperature.", "CORRECT! Late April to May 15 gives full season for boll development!\nFuture tech: Smart soil temperature sensors wirelessly alert farmer when soil is warm enough to sow!", "OKAY: June sowing is possible but season is 30 days shorter reducing yield.\nModern fact: Every week late sowing after May 15 reduces Punjab cotton yield by 60 kg/acre."], yield_effect: [-20, 15, -5] },
+        { name: "Irrigation", question: "Cotton is a deep-rooted crop. How will you irrigate?", choices: ["Flood irrigation every 10 days", "Furrow irrigation at critical stages", "Drip irrigation with fertigation"], correct: 2, okay: 1, feedback: ["WRONG: Flood irrigation wastes 60% water and causes weed explosion in cotton!\nModern fact: Cotton root rot (Phytophthora) is triggered by excess moisture near stem.", "OKAY: Furrow irrigation is better than flood, directs water between rows.\nModern fact: Furrow irrigation saves 30% water compared to flood for cotton.", "CORRECT! Drip + fertigation is perfect for cotton - saves 50% water and 30% fertilizer!\nFuture tech: Israel pioneered drip irrigation for cotton - Punjab adopted it with 90% subsidy!"], yield_effect: [-10, 5, 18] },
+        { name: "Fertilizer", question: "Cotton is a heavy feeder. What fertilizer plan will you use?", choices: ["High nitrogen only for leaf growth", "NPK 120:60:60 kg/ha in split doses", "Foliar spray of micronutrients + soil NPK"], correct: 2, okay: 1, feedback: ["WRONG: High N makes vegetative plant with fewer bolls. Tall leafy plant low yield!\nModern fact: Cotton responds dramatically to Potassium for boll filling and fibre quality.", "OKAY: NPK in split doses is good standard recommendation from PAU.\nModern fact: Split application means 1/3 at sowing, 1/3 at square formation, 1/3 at boll development.", "CORRECT! Foliar micronutrients + soil NPK gives highest boll count and fibre quality!\nFuture tech: Drone-applied foliar nutrition can target specific low-health zones detected by NDVI maps!"], yield_effect: [-12, 8, 15] },
+        { name: "Spray / Pest Control", question: "Whitefly attack on cotton! This is a major problem in Punjab. What do you do?", choices: ["Spray any systemic insecticide", "Use yellow sticky traps + Neem oil + selective spray", "Do nothing, Bt cotton handles all pests"], correct: 1, okay: 0, feedback: ["OKAY: Systemic insecticide works but overuse causes resistance in whitefly.\nModern fact: Punjab whitefly has developed resistance to 12 chemical groups due to overuse!", "CORRECT! Integrated approach - traps + neem + selective spray is most effective!\nFuture tech: AI-monitored smart sticky traps count insects daily and send phone alert when threshold crossed!", "WRONG: Bt cotton only resists bollworm! Whitefly, jassid, aphid are NOT controlled by Bt!\nModern fact: Whitefly became Punjab's #1 cotton problem BECAUSE Bt reduced bollworm sprays that also killed whitefly predators!"], yield_effect: [-5, 15, -30] },
+        { name: "Machinery", question: "Cotton bolls are opening. How will you pick the cotton?", choices: ["Manual picking (2-3 pickings)", "Mechanical spindle cotton picker", "Stripper harvester (all at once)"], correct: 0, okay: 1, feedback: ["CORRECT! Manual 2-3 pickings gives cleanest cotton with best fibre quality!\nFuture tech: USA uses mechanical pickers but India's hand-picked cotton gets 15% premium price in textile markets!", "OKAY: Mechanical picker works in USA but in Punjab it is not common due to high cost.\nModern fact: A mechanical cotton picker costs Rs 80 lakh but harvests 200 acres/day!", "WRONG: Stripper harvester takes ALL bolls at once - unripe bolls reduce quality badly!\nModern fact: Stripper harvested cotton grades C or D while hand-picked grades A - price difference is Rs 500/quintal!"], yield_effect: [15, 3, -15] },
+        { name: "Monitor Crop", question: "How will you monitor your cotton crop for stress and pests?", choices: ["Visual inspection once a week", "Pheromone traps + weekly scouting", "Drone NDVI mapping + phone AI app"], correct: 2, okay: 1, feedback: ["WRONG: Visual inspection misses 70% of early pest infestation on undersides of leaves!\nModern fact: Whitefly colonies start on leaf undersides - visible only with weekly proper scouting.", "OKAY: Pheromone traps + scouting is the recommended IPM approach for cotton.\nModern fact: Each pheromone trap covers 1 acre and costs Rs 150 - very cost effective monitoring tool.", "CORRECT! Drone NDVI gives full picture of crop stress, disease and pest zones!\nFuture tech: Satellite cotton monitoring every 5 days is now FREE via Fasal app for Indian farmers!"], yield_effect: [-10, 5, 15] },
+        { name: "Post-Harvest", question: "After cotton harvest, how will you manage crop residue?", choices: ["Burn cotton stalks in field", "Uproot by hand and compost", "Mechanical stalk shredder + soil incorporation"], correct: 2, okay: 1, feedback: ["WRONG: Burning cotton stalks destroys soil organic matter and kills beneficial insects!\nModern fact: Cotton stalk burning is fined Rs 5000/acre in Punjab. Also spreads pink bollworm eggs!", "OKAY: Hand uprooting and composting is environment-friendly but very labour-intensive.\nModern fact: Cotton stalks have NPK worth Rs 800/acre if composted properly instead of burned.", "CORRECT! Stalk shredder + incorporation improves soil organic carbon by 0.3% per season!\nFuture tech: Shredded cotton stalks are now being used to make biodegradable packaging material!"], yield_effect: [-15, 5, 15] }
+      ]
+    },
+    "Maize (Punjab)": {
+      region: "Punjab, India", season: "Kharif (Jun - Sep)",
+      description: "Fast-growing summer crop. Used for food, feed and ethanol. 90-day season.",
+      steps: [
+        { name: "Choose Variety", question: "Which maize variety will you choose?", choices: ["Composite variety (open-pollinated)", "Single cross hybrid (PMH-1)", "Triple cross hybrid with QPM trait"], correct: 2, okay: 1, feedback: ["WRONG: Composite varieties yield 30-35 q/acre vs 50+ for hybrids. Big difference!\nModern fact: Hybrid maize seed cannot be saved - farmers must buy fresh seed each season.", "OKAY: PMH-1 is good standard hybrid giving 45-50 q/acre in Punjab.\nModern fact: PAU released PMH-1 in 1992 - still popular due to consistent performance.", "CORRECT! QPM hybrid has 2x protein quality and gives highest yield!\nFuture tech: CIMMYT developed Quality Protein Maize using marker-assisted selection - nutritious AND high yield!"], yield_effect: [-15, 5, 15] },
+        { name: "Prepare Field", question: "How will you prepare field for maize?", choices: ["2-3 ploughings + planking", "Zero-till direct seeding", "Raised bed with drip irrigation"], correct: 2, okay: 0, feedback: ["OKAY: Traditional preparation is common and works but uses more water.\nModern fact: Maize needs well-drained soil - waterlogging for even 24 hours causes 60% yield loss.", "WRONG: Zero-till maize needs specific equipment not common in Punjab small farms.\nModern fact: Zero-till does work for maize in USA but requires no-till drill with row cleaners.", "CORRECT! Raised beds prevent waterlogging and drip saves 40% irrigation water!\nFuture tech: Permanent raised beds with GPS-guided planters maintain same beds for 10+ years!"], yield_effect: [-3, -10, 15] },
+        { name: "Sowing", question: "What plant population will you maintain per acre?", choices: ["10,000 plants/acre (too sparse)", "25,000-27,000 plants/acre (ideal)", "40,000+ plants/acre (too dense)"], correct: 1, okay: 0, feedback: ["WRONG: Too few plants means wasted land. Yield is directly proportional to plant stand!\nModern fact: PAU recommends 25,000-27,000 plants/acre for maximum cob yield.", "CORRECT! 25,000-27,000 plants per acre is PAU recommended optimum population!\nFuture tech: Precision planters place exactly 1 seed every 18cm with 99% accuracy - no thinning needed!", "WRONG: Too dense planting causes competition, lodging and ear rot disease!\nModern fact: Above 30,000 plants/acre in Punjab conditions, maize yield actually decreases!"], yield_effect: [-15, 15, -12] },
+        { name: "Irrigation", question: "Maize is sensitive to drought at which stage?", choices: ["Germination stage (water heavily)", "Tasselling and silking stage (critical)", "Maturity stage (stop water)"], correct: 1, okay: 2, feedback: ["WRONG: Over-watering at germination causes damping off disease and poor emergence!\nModern fact: Maize germination needs moist soil not flooded conditions.", "CORRECT! Tasselling-silking is most critical - drought here causes barren cobs!\nFuture tech: Soil moisture sensors at 30cm depth now alert farmers 48 hours before drought stress occurs!", "OKAY: Stopping water at maturity is correct but the critical stage knowledge is key.\nModern fact: Maize needs only 500-600mm water per season vs 1200mm for rice - much more efficient!"], yield_effect: [-8, 15, 5] },
+        { name: "Fertilizer", question: "Maize is a heavy nitrogen feeder. What is your N management plan?", choices: ["All nitrogen at sowing (single dose)", "Split N: 1/3 sowing + 1/3 knee-high + 1/3 tasselling", "Only organic manure, no chemical N"], correct: 1, okay: 2, feedback: ["WRONG: Single N dose causes luxury uptake early and deficiency at grain fill!\nModern fact: 40% of applied nitrogen is lost to atmosphere if given all at once in hot weather.", "CORRECT! Split N application matches crop demand at each growth stage perfectly!\nFuture tech: Controlled release N fertilizers (polymer coated urea) release nitrogen over 90 days matching maize crop cycle!", "OKAY: Organic N is sustainable but release is too slow for fast-growing maize hybrid.\nModern fact: 100% organic maize yields 30% less than fertilized maize but fetches 2x price as organic premium!"], yield_effect: [-12, 15, -5] },
+        { name: "Spray / Pest Control", question: "Fall armyworm has invaded your maize field (new pest since 2018)!", choices: ["Spray chlorpyriphos (old chemical)", "Emamectin benzoate + Spinetoram rotation", "Release Telenomus remus biological control"], correct: 1, okay: 2, feedback: ["WRONG: Chlorpyriphos is banned in many countries due to toxicity. Resistance also developing!\nModern fact: India banned chlorpyriphos on vegetables in 2020 due to health concerns.", "CORRECT! Emamectin + Spinetoram rotation prevents resistance development in armyworm!\nFuture tech: Pheromone-based mass trapping now available for fall armyworm - catches millions of moths per acre!", "OKAY: Telenomus is excellent biological control but takes 2 weeks to work - too slow for emergency!\nModern fact: ICAR released Telenomus remus as biocontrol agent for fall armyworm across India in 2020."], yield_effect: [-20, 15, -5] },
+        { name: "Machinery", question: "Maize cobs are ready. How will you harvest?", choices: ["Manual cob picking", "Combine harvester for grain maize", "Maize picker-sheller machine"], correct: 2, okay: 1, feedback: ["WRONG: Manual maize harvesting takes 15 workers per acre for 3 days. Very expensive!\nModern fact: Farm labour cost for manual maize harvest is Rs 6000-8000 per acre in Punjab.", "OKAY: Combine works but not all combines handle maize well without proper header.\nModern fact: Maize combine headers cost Rs 5 lakh extra - shared service is more economical.", "CORRECT! Maize picker-sheller harvests and shells grain in one pass saving time!\nFuture tech: Self-propelled maize picker-shellers now available for Rs 8 lakh with 8 rows simultaneous harvest!"], yield_effect: [-10, 5, 15] },
+        { name: "Monitor Crop", question: "How will you detect maize borer infestation early?", choices: ["Wait for visible dead heart in plants", "Scout 10 plants per acre weekly", "Pheromone traps + economic threshold decision"], correct: 2, okay: 1, feedback: ["WRONG: Dead heart means borer already inside stem. Spray cannot reach it!\nModern fact: Stem borer damage is irreversible once inside - early detection before egg hatch is critical.", "OKAY: Weekly scouting of 10 plants gives statistically valid sample for decision.\nModern fact: Economic threshold for maize borer is 10% infested plants before spray decision.", "CORRECT! Pheromone traps catch adult moths and predict when to spray eggs before hatching!\nFuture tech: Smart pheromone traps with IoT counters send moth count to farmer phone daily!"], yield_effect: [-15, 8, 15] },
+        { name: "Post-Harvest", question: "Maize is harvested at 25% moisture. How will you dry it?", choices: ["Spread on road for sun drying (natural)", "Mechanical dryer to 14% moisture", "Store wet and sell immediately at discount"], correct: 1, okay: 0, feedback: ["OKAY: Sun drying works but takes 7 days and road drying contaminates with dust and aflatoxin risk.\nModern fact: Maize dried on roads has high contamination and gets discounted at mills.", "CORRECT! Mechanical drying to 14% gives clean, safe grain for storage or sale!\nFuture tech: Solar-powered grain dryers now available at Rs 2 lakh - pays back in 2 seasons of savings!", "WRONG: Wet maize develops aflatoxin mold in 3 days - can be rejected by mills entirely!\nModern fact: Aflatoxin contamination makes grain unsellable - Rs 10,000/acre complete loss!"], yield_effect: [-5, 15, -20] }
+      ]
+    },
+    "Mustard (Punjab)": {
+      region: "Punjab, India", season: "Rabi (Oct - Mar)",
+      description: "Important oilseed crop of Punjab. Grown as second crop after kharif. 120-day season.",
+      steps: [
+        { name: "Choose Variety", question: "Which mustard variety will you sow?", choices: ["RH-30 (old variety)", "GSC-7 (Yellow Sarson hybrid)", "Pusa Double Zero Mustard (low erucic)"], correct: 2, okay: 1, feedback: ["WRONG: RH-30 is old and gives only 8-10 q/acre. New varieties give 15+ quintal!\nModern fact: Old varieties have high erucic acid - not suitable for edible oil export markets.", "OKAY: GSC-7 yellow sarson is good hybrid with 12-13 q/acre yield.\nModern fact: Yellow sarson has milder taste and higher oil content than brown mustard.", "CORRECT! Double Zero mustard has no erucic acid and no glucosinolates - premium edible oil!\nFuture tech: Hybrid mustard developed at NRRI Bharatpur can give 20 q/acre using heterosis breeding!"], yield_effect: [-15, 5, 15] },
+        { name: "Prepare Field", question: "How will you prepare field for mustard after paddy harvest?", choices: ["Heavy tillage after paddy (3 ploughings)", "Zero-till after paddy using Happy Seeder", "Rotavator once then sow"], correct: 1, okay: 2, feedback: ["WRONG: Heavy tillage after paddy is expensive and delays sowing - every day late costs yield!\nModern fact: Mustard sowed after November 15 loses 40 kg/acre per week of delay.", "CORRECT! Zero-till after paddy with Happy Seeder is fastest and saves Rs 2000/acre!\nFuture tech: Zero-till mustard in paddy stubble fixes carbon in soil and reduces greenhouse gas emissions!", "OKAY: Rotavator is faster than full tillage but still slower than zero-till by 5-7 days.\nModern fact: Rotavation of paddy stubble causes tillage pan formation reducing water infiltration."], yield_effect: [-10, 15, 5] },
+        { name: "Sowing", question: "What is ideal sowing time for mustard in Punjab?", choices: ["September (too early, heat stress)", "October 10-25 (ideal window)", "November 20 (too late)"], correct: 1, okay: 0, feedback: ["WRONG: September is too hot for mustard - temperature above 30C causes poor germination!\nModern fact: Mustard needs 15-20C for optimal germination and early growth.", "CORRECT! Oct 10-25 gives perfect temperature for establishment and maximum yield!\nFuture tech: Weather-based mustard sowing advisory apps now provide district-level exact sowing date recommendations!", "WRONG: After November 15, each week late reduces yield by 8-10% in Punjab!\nModern fact: Late sowing mustard misses the cool reproductive phase leading to poor pod setting."], yield_effect: [-15, 15, -10] },
+        { name: "Irrigation", question: "How many irrigations does mustard need?", choices: ["No irrigation (only rain)", "1-2 critical irrigations (flowering + pod fill)", "5+ irrigations like wheat"], correct: 1, okay: 0, feedback: ["OKAY: Mustard can survive on rain in good rainfall year but 1 irrigation at flowering doubles yield.\nModern fact: Mustard is drought tolerant but responds dramatically to 1 critical irrigation at flowering.", "CORRECT! 1-2 critical irrigations at flowering and pod fill maximizes oil yield!\nFuture tech: Precision irrigation scheduling apps now predict exact day for mustard critical irrigation based on rainfall!", "WRONG: Over-irrigation in mustard causes excessive vegetative growth, lodging and disease!\nModern fact: Sclerotinia stem rot fungal disease is triggered by excess moisture in mustard crop."], yield_effect: [-5, 15, -10] },
+        { name: "Fertilizer", question: "What fertilizer does mustard need?", choices: ["Heavy nitrogen like wheat", "NPK + Sulfur (S is critical for oil quality)", "No fertilizer - mustard grows wild"], correct: 1, okay: 0, feedback: ["OKAY: Nitrogen is needed but Sulfur is equally critical and often missed by farmers.\nModern fact: Punjab soils are increasingly Sulfur deficient due to use of S-free fertilizers.", "CORRECT! NPK + Sulfur is essential - S deficiency reduces oil content by 3-4%!\nFuture tech: Elemental sulfur granules developed by IFFCO release sulfur slowly over entire mustard season!", "WRONG: Unimproved mustard grows wild but modern varieties NEED fertilizer for high yield!\nModern fact: High-yielding mustard varieties have been bred for heavy nutrient response - they need inputs."], yield_effect: [-5, 15, -20] },
+        { name: "Spray / Pest Control", question: "Mustard aphid is the major pest. How do you manage it?", choices: ["Spray any insecticide at first sight of aphid", "Monitor and spray only at 20-25 aphids/plant threshold", "Do nothing, natural enemies will control"], correct: 1, okay: 2, feedback: ["WRONG: Early spray before threshold kills natural enemies like ladybird beetles!\nModern fact: Ladybird beetles can control aphids naturally if not disturbed by early insecticide spray.", "CORRECT! Economic threshold of 20-25 aphids/plant before spraying is PAU recommendation!\nFuture tech: AI phone apps can count aphid density from close-up photo and recommend spray decision!", "OKAY: Natural enemies work in light infestations but in heavy attack spray is needed.\nModern fact: Aphid population can reach 500/plant in cold cloudy weather - natural enemies cannot keep up."], yield_effect: [-10, 15, -5] },
+        { name: "Machinery", question: "Mustard pods are yellow-brown and shattering will occur soon. How do you harvest?", choices: ["Wait for full dry before combine harvest", "Harvest at 35-40% moisture with combine + dry after", "Cut manually and thresh after drying"], correct: 1, okay: 2, feedback: ["WRONG: Waiting for full dry causes heavy pod shattering losses - up to 20% yield lost!\nModern fact: Mustard pod shattering at full maturity costs Punjab farmers Rs 800-1000 crore annually.", "CORRECT! Early combine at 35-40% moisture prevents shattering. Dry seeds after!\nFuture tech: Anti-shattering mustard varieties developed at NRRI can hold pods for 10 extra days without shattering!", "OKAY: Manual cut and dry is traditional method but requires 15+ labour days per acre.\nModern fact: Windrow cutter + pick-up combine is common in Canada for rapeseed to prevent shattering."], yield_effect: [-15, 15, 3] },
+        { name: "Monitor Crop", question: "How will you monitor your mustard crop during the growing season?", choices: ["Observe color changes monthly", "Scout for aphid, white rust, Sclerotinia weekly", "Use satellite NDVI monitoring"], correct: 2, okay: 1, feedback: ["WRONG: Monthly observation misses critical pest and disease windows!\nModern fact: White rust disease in mustard progresses from 5% to 80% severity in just 10 days of wet weather.", "OKAY: Weekly scouting covers main threats but takes time on large farms.\nModern fact: Mustard faces 3 major threats: aphid, white rust, and Sclerotinia - all need different management.", "CORRECT! Satellite NDVI detects stress patches before visible symptoms!\nFuture tech: Sentinel-2 satellite gives free 10m resolution images every 5 days for mustard monitoring!"], yield_effect: [-10, 8, 15] },
+        { name: "Post-Harvest", question: "You harvested 12 quintals/acre mustard. What is your best marketing strategy?", choices: ["Sell immediately to local trader at mandi price", "Store 3 months and sell in off-season", "Sell to mustard oil mill directly for premium"], correct: 2, okay: 1, feedback: ["WRONG: Local trader margins are 15-20%. You lose Rs 400-600 per quintal unnecessarily!\nModern fact: Farmers selling directly to processors cut out 2-3 middlemen and get 15% more price.", "OKAY: Storage works if you have good storage facility and can hold for price rise.\nModern fact: Mustard price typically rises 10-15% from harvest time to December due to seasonal demand.", "CORRECT! Direct oil mill contract gives 8-10% premium for clean, high oil-content seed!\nFuture tech: e-NAM online mandi platform allows farmers to sell directly to oil mills across India digitally!"], yield_effect: [-10, 5, 15] }
+      ]
+    },
+    "Corn (USA)": {
+      region: "USA (Corn Belt - Iowa, Illinois, Indiana)", season: "Summer (Apr - Sep)",
+      description: "America's largest crop by volume. Used for ethanol, animal feed, and food products. High-tech farming.",
+      steps: [
+        { name: "Choose Variety", question: "You are in Iowa. Which corn hybrid will you plant?", choices: ["Open-pollinated heirloom variety", "Pioneer P1197 (100-day hybrid)", "Drought-tolerant SmartStax hybrid with stacked traits"], correct: 2, okay: 1, feedback: ["WRONG: Open-pollinated corn yields 60-80 bu/acre vs 200+ for modern hybrids!\nModern fact: Less than 1% of US corn acres use open-pollinated varieties today.", "OKAY: Pioneer P1197 is reliable standard hybrid giving 180-200 bu/acre in Iowa.\nModern fact: Pioneer is world's largest seed company - its hybrids dominate US Corn Belt.", "CORRECT! Stacked trait hybrid with drought tolerance + insect resistance + herbicide tolerance is best!\nFuture tech: CRISPR-edited corn varieties can now produce 10% more yield with no pesticide input!"], yield_effect: [-30, 5, 18] },
+        { name: "Prepare Field", question: "It is April in Iowa. How will you prepare your 500-acre corn field?", choices: ["Moldboard plow every spring", "Strip-till in fall + no-till in spring", "Full no-till into corn residue"], correct: 1, okay: 2, feedback: ["WRONG: Moldboard plowing destroys soil structure and organic matter. Banned in many conservation programs!\nModern fact: Iowa loses 5 tons of topsoil per acre per year from conventional tillage - crisis for future farming.", "CORRECT! Strip-till preserves 70% residue while warming planting zone for early emergence!\nFuture tech: GPS strip-till units create 8-inch wide tilled strips with precision sub-surface fertilizer placement!", "OKAY: Full no-till works but corn residue can cause slow soil warm-up delaying planting.\nModern fact: Each week delay in corn planting after May 1 in Iowa costs 1% yield reduction."], yield_effect: [-10, 18, 5] },
+        { name: "Planting", question: "When is the ideal corn planting date in Iowa?", choices: ["March 25 (too early - cold stress)", "April 25 - May 10 (ideal)", "June 1 (too late)"], correct: 1, okay: 0, feedback: ["OKAY: Early planting is risky - cold soil below 50F causes imbibitional chilling and poor stands.\nModern fact: Iowa State recommends waiting for soil temp 50F at 2-inch depth for corn planting.", "CORRECT! Late April to May 10 is ideal planting window in Iowa for maximum yield!\nFuture tech: Precision planting monitors measure seed singulation and spacing at 5mph planting speed!", "WRONG: June planting in Iowa misses optimal growing season - yield loss of 25-35%!\nModern fact: Corn planted June 1 in Iowa yields 150 bu vs 200+ bu for May 1 planting."], yield_effect: [-8, 18, -20] },
+        { name: "Irrigation", question: "Iowa gets 35 inches of rain. When does your corn need supplemental irrigation?", choices: ["Irrigate all season for maximum yield", "Only during silking and grain fill if dry", "Never irrigate - rely on rain only"], correct: 1, okay: 2, feedback: ["WRONG: Over-irrigation wastes water and can cause nitrogen leaching into groundwater!\nModern fact: Iowa corn needs 22-24 inches of water - excessive irrigation causes denitrification losses.", "CORRECT! Targeted irrigation at silking and grain fill gives highest water use efficiency!\nFuture tech: Variable rate irrigation (VRI) systems change water application rate within same pivot based on soil maps!", "OKAY: Iowa rainfall is usually enough but drought years cause 30-40% yield loss without irrigation.\nModern fact: 2012 drought cut Iowa corn yield from 180 to 140 bu/acre - worst drought since 1988."], yield_effect: [-8, 18, -5] },
+        { name: "Fertilizer", question: "Your soil test shows 150 lb/acre available nitrogen. Your corn needs 200 lb. What do you do?", choices: ["Apply 200 lb N all at planting", "Starter at planting + sidedress at V6 with variable rate", "Apply 300 lb just to be safe"], correct: 1, okay: 0, feedback: ["OKAY: All at planting is common but spring rain can leach nitrogen before crop needs it.\nModern fact: Pre-plant N application loses 15-20% to leaching in wet Iowa springs.", "CORRECT! Starter + sidedress variable rate maximizes efficiency and minimizes loss!\nFuture tech: Canopy sensors on sidedress applicators measure corn color in real-time to adjust N rate by zone!", "WRONG: Over-application causes N2O greenhouse gas emissions and nitrate in groundwater!\nModern fact: 40% of Iowa groundwater wells exceed safe nitrate limits due to over-fertilization."], yield_effect: [-5, 18, -10] },
+        { name: "Spray / Pest Control", question: "Corn rootworm is the number 1 corn pest in Iowa. How do you manage it?", choices: ["Soil insecticide at planting every year", "Corn-soybean rotation + Bt rootworm trait", "Rootworm-trait corn with no rotation"], correct: 1, okay: 0, feedback: ["OKAY: Soil insecticide works but adds $25/acre cost and has environmental concerns.\nModern fact: Chlorpyrifos soil insecticide for rootworm was used on 40% of Iowa corn acres.", "CORRECT! Crop rotation is the most economical rootworm management strategy!\nFuture tech: Western corn rootworm has developed resistance to some Bt traits - rotation is now critical again!", "WRONG: Continuous Bt corn without rotation has led to Bt-resistant rootworm in Iowa!\nModern fact: Bt rootworm resistance confirmed in 6 Iowa counties in 2011 from continuous corn growing."], yield_effect: [-5, 18, -15] },
+        { name: "Machinery", question: "It is September, corn moisture is 25%. What is your harvest decision?", choices: ["Wait for natural field dry-down to 15%", "Harvest at 25% and dry with propane dryer", "Harvest at 20% with partial drying"], correct: 2, okay: 1, feedback: ["WRONG: Waiting for field dry-down risks stalk rot and ear drop - 3-5% field losses!\nModern fact: October storms in Iowa can knock down stalks before harvest - waiting is risky.", "OKAY: Harvest at 25% works but propane drying at 25% is expensive - $0.04/bu/point.\nModern fact: Iowa corn dried from 25% to 15% costs $0.40/bu in propane - reduces net price significantly.", "CORRECT! Harvest at 20% reduces drying cost while avoiding field losses!\nFuture tech: Real-time grain moisture sensors on combines automatically track and log moisture of each load!"], yield_effect: [-10, 10, 18] },
+        { name: "Monitor Crop", question: "How will you monitor your 500-acre Iowa corn field during the season?", choices: ["Walk field edges weekly", "Scout grid 1 point per 5 acres weekly", "Drone NDVI + satellite imagery + yield maps"], correct: 2, okay: 1, feedback: ["WRONG: Field edges show only border conditions - center problems are missed completely!\nModern fact: Gray leaf spot fungal disease typically starts in center of field in humid low-air areas.", "OKAY: Grid scouting is standard IPM approach - representative but time-intensive on 500 acres.\nModern fact: It takes 3 people one full day to properly scout 500 acres of corn.", "CORRECT! Multi-layer remote sensing gives complete field health picture every week!\nFuture tech: AI-powered drone scouting systems fly autonomously, detect 15 diseases, and generate prescription maps!"], yield_effect: [-8, 8, 18] },
+        { name: "Post-Harvest", question: "You harvested 210 bu/acre on 500 acres. What is your grain marketing strategy?", choices: ["Sell all at harvest to local elevator", "Store in on-farm bin and sell at winter price peak", "Forward contract 50% pre-harvest + sell remainder strategically"], correct: 2, okay: 1, feedback: ["WRONG: Harvest-time prices are typically the seasonal low due to oversupply!\nModern fact: Iowa corn prices typically average 30-40 cents higher in February than October.", "OKAY: On-farm storage works but ties up capital and has carrying cost of $0.04/bu/month.\nModern fact: 60% of Iowa corn acres have on-farm storage - it is key to corn marketing strategy.", "CORRECT! Pre-harvest forward contracts lock in profit while storage handles the rest strategically!\nFuture tech: Grain marketing AI tools analyze futures markets and recommend optimal sell dates automatically!"], yield_effect: [-5, 10, 18] }
+      ]
+    },
+    "Soybean (USA)": {
+      region: "USA (Midwest - Iowa, Illinois, Minnesota)", season: "Summer (May - Oct)",
+      description: "Second largest US crop. Protein and oil source. Nitrogen-fixing legume. Rotates with corn.",
+      steps: [
+        { name: "Choose Variety", question: "What soybean maturity group will you plant in Illinois (Zone 4)?", choices: ["Maturity Group 2 (too early)", "Maturity Group 3.8-4.2 (ideal for Illinois)", "Maturity Group 5 (too late)"], correct: 1, okay: 0, feedback: ["OKAY: MG2 is too early for Illinois - plants mature before using full growing season.\nModern fact: Each maturity group represents roughly 2 weeks difference in time to flower and mature.", "CORRECT! MG 3.8-4.2 is perfectly matched to Illinois day length and season length!\nFuture tech: AI variety selection tools match hundreds of trial data points to your exact GPS location and soil type!", "WRONG: MG5 won't mature before first frost in Illinois - crop killed before full yield!\nModern fact: Soybeans are photoperiod-sensitive - day length triggers flowering, so zone matching is critical."], yield_effect: [-10, 18, -20] },
+        { name: "Prepare Field", question: "How will you establish soybeans in Illinois after corn?", choices: ["Conventional till with moldboard plow", "No-till into corn residue", "Strip-till or vertical tillage"], correct: 1, okay: 2, feedback: ["WRONG: Soybean does not need tillage and moldboard plow destroys soil health!\nModern fact: Illinois has 60% of soybean acres under no-till or reduced tillage today.", "CORRECT! No-till soybeans preserve soil moisture, organic matter and reduce erosion!\nFuture tech: Cover crop + no-till system fixes nitrogen AND prevents compaction from continuous corn-soy.", "OKAY: Strip-till or vertical tillage is compromise - preserves some soil health while managing heavy residue.\nModern fact: High-residue vertical tillage was developed specifically for corn-soybean no-till transition."], yield_effect: [-10, 18, 5] },
+        { name: "Planting", question: "When should you plant soybeans in Illinois?", choices: ["April 10 (very early - cold soil)", "May 1-15 (ideal window)", "June 5 (late)"], correct: 1, okay: 0, feedback: ["OKAY: Early planting can work with modern varieties but cold soil risks poor stand.\nModern fact: Soybean seed rot from Phytophthora and Pythium is much higher in cold wet soils below 50F.", "CORRECT! May 1-15 in Illinois gives warm soil establishment and maximum growing season!\nFuture tech: Precision planting monitors check seed depth and singulation 1000x per second during planting!", "WRONG: June planting in Illinois loses 0.5 bu/acre per day after May 25!\nModern fact: Illinois soybean yield loss from late planting is 0.4-0.8 bu/acre per calendar day."], yield_effect: [-5, 18, -20] },
+        { name: "Irrigation", question: "Illinois averages 38 inches of rain. When does soybean most need water?", choices: ["Germination and early vegetative", "R1 flowering through R6 seed fill", "After R7 maturity - keep watering"], correct: 1, okay: 0, feedback: ["OKAY: Early water matters but late-season pod fill water is most critical for yield.\nModern fact: Soybean water stress at V2-V4 reduces node number but is partially recoverable.", "CORRECT! R1-R6 is critical period - drought here can reduce yield 40-50%!\nFuture tech: Wireless soil moisture arrays with AI scheduling save 25% irrigation water in soybean fields!", "WRONG: After R7, soybean plant is dying naturally - late water causes disease and delayed harvest!\nModern fact: Late irrigation beyond R6 promotes brown stem rot and white mold infections."], yield_effect: [-5, 18, -12] },
+        { name: "Fertilizer", question: "Soybeans fix nitrogen. What fertilizer do they need?", choices: ["200 lb nitrogen like corn", "Phosphorus + Potassium based on soil test + Rhizobium inoculant", "No fertilizer at all"], correct: 1, okay: 2, feedback: ["WRONG: Adding N to soybeans suppresses nodulation and wastes money completely!\nModern fact: Well-nodulated soybeans fix 50-75% of their own N - external N is counterproductive.", "CORRECT! P+K soil test replacement + good inoculant is the complete soybean fertility program!\nFuture tech: Liquid inoculants with polymer coating protect Rhizobium from heat and desiccation during application!", "OKAY: Soybeans don't need N, but P and K removal is 0.8 lb K per bushel - must be replaced!\nModern fact: On high-yielding ground, soybeans remove 100+ lb K2O/acre - soil mining without replacement."], yield_effect: [-15, 18, -8] },
+        { name: "Spray / Pest Control", question: "Soybean cyst nematode (SCN) is the #1 soybean yield robber. How do you manage?", choices: ["Apply nematicide at planting", "Plant SCN-resistant variety + rotate crops", "Do nothing - SCN is invisible"], correct: 1, okay: 0, feedback: ["OKAY: Nematicide seed treatment adds $10-15/acre but does not address long-term SCN buildup.\nModern fact: Avicta and Clariva nematicide seed treatments provide 60-70 day protection only.", "CORRECT! Resistant variety + rotation is the only sustainable SCN management strategy!\nFuture tech: CRISPR editing is being used to stack multiple SCN resistance genes that overcome virulent SCN populations!", "WRONG: SCN causes invisible yield loss of 15-30% - no visible symptoms until loss is severe!\nModern fact: SCN costs US soybean farmers $1.5 billion annually - the most economically damaging pathogen."], yield_effect: [-5, 18, -20] },
+        { name: "Machinery", question: "Soybeans are at 15% moisture. What is your harvest approach?", choices: ["Wait for 10% moisture before harvest", "Harvest at 13-14% moisture immediately", "Harvest at 20% and use dryer"], correct: 1, okay: 2, feedback: ["WRONG: Below 12% moisture soybean pods begin to shatter - field losses of 5-8 bu/acre!\nModern fact: Soybean pod shatter below 10% moisture can cost 10+ bu/acre on windy days.", "CORRECT! 13-14% is the sweet spot - no shatter risk and no drying needed!\nFuture tech: Multi-sensor combine header control maintains optimal cutting height for minimizing header loss!", "OKAY: Harvesting at 20% avoids shattering but drying cost $0.03/bu/point makes it expensive.\nModern fact: Soybeans dried from 20% to 13% costs $0.21/bu in propane - significant cost on high-yield acres."], yield_effect: [-10, 18, 5] },
+        { name: "Monitor Crop", question: "How do you detect white mold (Sclerotinia) early in soybeans?", choices: ["Wait for white fluffy mold on stems", "Scout canopy closure fields for first wilting plants", "Use weather-based risk model + fungicide timing"], correct: 2, okay: 1, feedback: ["WRONG: Visible white mold means infection is 3 weeks old - fungicide is too late!\nModern fact: Sclerotinia germinates and infects via apothecia during flowering - this is the only spray window.", "OKAY: Early scouting for wilted plants at canopy closure detects mid-season infection.\nModern fact: Soybean fields with canopy closure before R1 have highest Sclerotinia risk due to humidity.", "CORRECT! Weather-based risk model predicts infection risk 7-10 days before symptoms!\nFuture tech: SoyWater and Sporecaster apps provide GPS-based Sclerotinia risk forecasts updated daily!"], yield_effect: [-15, 8, 18] },
+        { name: "Post-Harvest", question: "You yielded 65 bu/acre soybeans. How will you market them?", choices: ["Sell to local elevator immediately", "Store and sell at soybean meal price peak", "Pre-harvest forward contract + basis trade"], correct: 2, okay: 1, feedback: ["WRONG: November harvest sale is seasonal price low - February-March prices are 50 cents higher!\nModern fact: Soybean prices follow seasonal pattern - post-harvest rally is consistent marketing opportunity.", "OKAY: Storage and sell at peak works but basis risk and storage cost eat some of the gain.\nModern fact: Soybean storage carrying cost is $0.03-0.04/bu/month including interest and shrink.", "CORRECT! Forward contract sets floor price while basis trading captures seasonal premium!\nFuture tech: Digital grain marketing platforms provide real-time basis quotes from 500+ elevators nationwide!"], yield_effect: [-5, 10, 18] }
+      ]
+    },
+    "Sunflower (USA)": {
+      region: "USA (Northern Plains - North Dakota, South Dakota, Kansas)", season: "Summer (May - Oct)",
+      description: "Major oilseed crop of Northern Plains. Two types: oilseed and confection. Drought tolerant.",
+      steps: [
+        { name: "Choose Variety", question: "You are in North Dakota growing sunflower. Which type will you choose?", choices: ["Confection sunflower for snack food market", "Oilseed hybrid for crush market", "High-oleic oilseed hybrid for specialty oil"], correct: 2, okay: 0, feedback: ["OKAY: Confection gives premium price per pound but yield is lower and quality specs are strict.\nModern fact: Confection sunflower requires contract before planting - you cannot sell without prior agreement.", "WRONG: Standard oilseed is commodity product with lowest price per pound.\nModern fact: Standard oilseed sunflower gets commodity price while high-oleic commands $0.03-0.05/lb premium.", "CORRECT! High-oleic oilseed captures $0.03-0.05/lb premium for stable frying oil market!\nFuture tech: CRISPR-edited high-oleic sunflower with extended shelf life and zero trans-fats developed by Cargill!"], yield_effect: [-5, -10, 18] },
+        { name: "Prepare Field", question: "How will you prepare North Dakota field for sunflower?", choices: ["Heavy tillage to control weed pressure", "No-till into small grain stubble", "Strip-till with in-row subsoiling"], correct: 1, okay: 2, feedback: ["WRONG: Heavy tillage destroys soil structure and increases erosion risk in sandy ND soils!\nModern fact: North Dakota wind erosion is severe on tilled fields - sunflower residue protects soil overwinter.", "CORRECT! No-till into small grain stubble preserves moisture and soil health!\nFuture tech: GPS no-till planters with individual row down-force control ensure seed-to-soil contact in variable soils!", "OKAY: Strip-till is good compromise with in-row warming zone for fast establishment.\nModern fact: Sunflower has a deep taproot and can establish well in no-till with good row cleaner management."], yield_effect: [-8, 18, 8] },
+        { name: "Planting", question: "When should you plant sunflower in North Dakota?", choices: ["April 20 (too early - frost risk)", "May 20 - June 5 (ideal)", "June 20 (too late)"], correct: 1, okay: 0, feedback: ["OKAY: April is risky for North Dakota frost - sunflower seedlings killed below 28F.\nModern fact: North Dakota last frost date varies from May 10 to June 5 depending on county.", "CORRECT! May 20 - June 5 is ideal - avoids frost and maximizes growing season!\nFuture tech: Precision planting populations vary from 17,000-24,000 plants/acre based on soil productivity zones!", "WRONG: June 20 planting risks early frost kill before maturity in North Dakota!\nModern fact: North Dakota sunflower needs 90-100 days to mature - June planting often gets frozen before harvest."], yield_effect: [-8, 18, -15] },
+        { name: "Irrigation", question: "North Dakota sunflower area averages 18 inches rain. Critical water period?", choices: ["Early vegetative (seedling establishment)", "Bud through R6 (seed fill)", "After physiological maturity"], correct: 1, okay: 0, feedback: ["OKAY: Seedling water matters but recovery is possible from early stress.\nModern fact: Sunflower has deep fibrous roots that can extract water from 5-foot soil depth after establishment.", "CORRECT! Bud to seed fill is most critical water period - 60% of yield potential here!\nFuture tech: Deficit irrigation scheduling tools optimize limited water allocation across the critical growth period!", "WRONG: After physiological maturity, adding water causes Sclerotinia and mold in drying heads!\nModern fact: Sunflower head moisture above 15% at harvest is ideal - late irrigation keeps heads wet too long."], yield_effect: [-5, 18, -12] },
+        { name: "Fertilizer", question: "What are the most critical nutrients for sunflower yield and oil quality?", choices: ["Heavy nitrogen for big plant size", "Nitrogen + Boron (critical for seed set)", "Phosphorus only at planting"], correct: 1, okay: 2, feedback: ["WRONG: Heavy N on sunflower causes lodging (stalk breakage) and delays maturity!\nModern fact: Sunflower N rate of 80-100 lb/acre is optimal - excess N delays maturity into frost season.", "CORRECT! N + Boron is critical combination - Boron deficiency causes hollow heart and empty seeds!\nFuture tech: Tissue testing for Boron at V8 stage with smartphone spectrometer provides real-time nutrient diagnosis!", "OKAY: P matters but Boron is the most commonly overlooked nutrient in ND sunflower.\nModern fact: Boron deficiency in ND sunflower causes 'hollow heart' - seed has no kernel inside the hull!"], yield_effect: [-10, 18, 5] },
+        { name: "Spray / Pest Control", question: "Sunflower moth larvae are entering heads at flowering. What is your decision?", choices: ["Spray immediately at first adult moths", "Monitor pheromone traps and spray at economic threshold", "Do nothing - natural enemies will handle it"], correct: 1, okay: 2, feedback: ["WRONG: Early spray at first moths kills natural enemies and moths may be below threshold!\nModern fact: Sunflower moth economic threshold is 4 moths per trap per night at flowering - spray below that wastes money.", "CORRECT! Pheromone trap monitoring gives exact timing for threshold-based spray decision!\nFuture tech: IoT pheromone traps transmit moth counts to farmer's phone daily for automated threshold alerts!", "OKAY: Natural enemies can suppress light infestations but are rarely enough for heavy moth pressure.\nModern fact: Lacewings and parasitic wasps can control 40% of sunflower moth population in favorable conditions."], yield_effect: [-10, 18, -5] },
+        { name: "Machinery", question: "Sunflower back of heads are brown and seeds are hard. Time to harvest!", choices: ["Combine immediately at 20% seed moisture", "Wait for natural dry-down to 10% moisture", "Harvest at 15% and dry in aeration bin"], correct: 2, okay: 1, feedback: ["WRONG: At 20% moisture, sunflower seeds do not shell out cleanly - threshing losses high!\nModern fact: Sunflower combines need seed at 14-15% for clean separation with minimum cylinder damage.", "OKAY: Natural dry-down to 10% works but risks bird damage - starlings eat sunflower!\nModern fact: Bird damage in Great Plains sunflower fields costs farmers $20-40 million per year.", "CORRECT! Harvest at 15%, aeration dry to 10% - avoids bird loss and machinery loss!\nFuture tech: Bird-deterrent drones with predator calls fly autonomously over sunflower fields during dry-down!"], yield_effect: [-8, 3, 18] },
+        { name: "Monitor Crop", question: "Sclerotinia white mold can destroy 50% of sunflower crop. How do you monitor?", choices: ["Wait for visible white fuzzy mold on stems", "Scout field for premature dead heads", "Use risk prediction model based on weather"], correct: 2, okay: 1, feedback: ["WRONG: Visible Sclerotinia means infection already 3 weeks old - too late for fungicide!\nModern fact: Sclerotinia infection happens at flowering underground from soil-borne spores.", "OKAY: Scouting for dead premature heads detects Sclerotinia mid-season.\nModern fact: Head rot form of Sclerotinia visible as brown wet decay on back of sunflower head.", "CORRECT! Weather-based prediction model forecasts Sclerotinia risk 14 days ahead!\nFuture tech: North Dakota State University Sclerotinia Risk Model is free online tool for Great Plains farmers!"], yield_effect: [-20, 8, 18] },
+        { name: "Post-Harvest", question: "You harvested 1800 lb/acre of sunflower seed. What is your best marketing option?", choices: ["Sell to local elevator at commodity price", "Contract with crushing plant for high-oleic premium", "Store and sell in winter off-season peak"], correct: 1, okay: 2, feedback: ["WRONG: Commodity sunflower price is $0.03-0.05/lb less than contracted high-oleic.\nModern fact: Pre-harvest contracts for high-oleic sunflower lock in $0.03/lb premium on 1 million lb = $30,000 extra!", "CORRECT! Contracted high-oleic premium is the most reliable way to maximize sunflower income!\nFuture tech: Online direct-to-food-manufacturer platforms let farmers bypass elevators selling specialty oils directly!", "OKAY: Winter storage works but sunflower oil goes rancid faster than corn or soybeans.\nModern fact: Sunflower seed stored above 10% moisture for 6+ months develops high free fatty acids reducing value."], yield_effect: [-5, 18, 5] }
+      ]
+    },
+    "Alfalfa (USA)": {
+      region: "USA (West - California, Idaho, Nevada, Arizona)", season: "Perennial (harvested 4-8 times per year)",
+      description: "Queen of forages. Highest protein hay crop. Fed to dairy cows. Perennial crop - lasts 5-7 years.",
+      steps: [
+        { name: "Choose Variety", question: "Which alfalfa variety will you plant in California's Central Valley?", choices: ["Standard dormant variety (winter dormant)", "Non-dormant variety (harvest year-round)", "Roundup Ready GM alfalfa for weed control"], correct: 1, okay: 2, feedback: ["WRONG: Dormant alfalfa stops growing in California mild winter - wastes growing season!\nModern fact: Central Valley has 300+ frost-free days - non-dormant alfalfa gives 8-9 cuts per year!", "CORRECT! Non-dormant varieties give 8-9 cuttings per year in California warm climate!\nFuture tech: New alfalfa varieties developed with drought-tolerance genes give 20% more yield under water stress!", "OKAY: RR alfalfa simplifies weed control but trait fee adds $10/acre and some buyers avoid GMO.\nModern fact: Japan and China - major US alfalfa buyers - restrict GM alfalfa imports affecting export market."], yield_effect: [-20, 18, 5] },
+        { name: "Prepare Field", question: "Alfalfa is a perennial lasting 5-7 years. How do you prepare the seedbed?", choices: ["Quick surface till and plant fast", "Deep till to 18 inches + precision level + soil test and amend pH", "No-till into existing crop residue"], correct: 1, okay: 2, feedback: ["WRONG: Poor seedbed is permanent problem for 5-7 year crop! Weeds ruin stand!\nModern fact: 50% of alfalfa stand failures are due to poor seedbed preparation - investment in seedbed pays for 7 years!", "CORRECT! Deep till + precision levelling + pH 6.8-7.5 is critical for long-term stand!\nFuture tech: Laser land levellers in California now achieve +-0.2 inch accuracy across 60-acre alfalfa fields!", "OKAY: No-till works for dormant variety in good conditions but weed competition is severe.\nModern fact: Alfalfa seedlings are very slow to establish - any weed competition in first 30 days is fatal."], yield_effect: [-20, 20, -5] },
+        { name: "Planting", question: "When do you plant alfalfa in California Central Valley?", choices: ["January (too cold for germination)", "August-September (ideal - cool establishment)", "April-May (heat stress on seedlings)"], correct: 1, okay: 2, feedback: ["WRONG: January soil temp is too cold - germination is slow and weeds dominate!\nModern fact: Alfalfa needs soil temperature above 41F for germination but 65-85F is ideal for fast establishment.", "CORRECT! August-September planting allows cool-season establishment before first cutting!\nFuture tech: Aerial seeding by drone into prepared fields is now being tested for 500-acre California alfalfa farms!", "OKAY: Spring planting works but seedlings face summer heat stress in Central Valley.\nModern fact: Heat stress on alfalfa seedlings in June-July California causes 30-40% stand loss in first year."], yield_effect: [-15, 20, -5] },
+        { name: "Irrigation", question: "California is in drought. Alfalfa uses 4-6 acre-feet of water per year. How will you manage?", choices: ["Flood irrigate as traditional (cheapest)", "Convert to subsurface drip irrigation (SDI)", "Deficit irrigate during summer cuts"], correct: 1, okay: 2, feedback: ["WRONG: Flood irrigation is California's biggest water waste - uses 50% more than drip!\nModern fact: Alfalfa uses 20% of California's total agricultural water budget. Drought forces change!", "CORRECT! SDI saves 30-50% water with same yield - transforms alfalfa economics in drought!\nFuture tech: Soil moisture sensor networks in SDI alfalfa fields provide automated precision irrigation 24/7!", "OKAY: Deficit irrigation saves water but reduces cutting frequency by 1-2 per year.\nModern fact: Each acre-foot of water saved in California alfalfa is worth $300-500 in water trading markets."], yield_effect: [-8, 20, 5] },
+        { name: "Fertilizer", question: "Alfalfa is a legume that fixes nitrogen. What fertilizer does it need?", choices: ["Heavy nitrogen for more growth", "Phosphorus + Potassium + Sulfur + Boron", "Nothing - it makes its own nitrogen"], correct: 1, okay: 2, feedback: ["WRONG: Adding N to alfalfa suppresses nodule activity and wastes money completely!\nModern fact: Well-nodulated alfalfa fixes 200-300 lb N/acre/year - it never needs synthetic nitrogen!", "CORRECT! P+K+S+B replacement is critical for high-yield alfalfa! Removes huge amounts per cutting!\nFuture tech: Petiole testing after each cutting tells exact P and K status in real-time for precise replacement!", "OKAY: Alfalfa does not need N but it DOES need P K S and B - ignoring these cuts yield by 30%.\nModern fact: A 10-ton/acre alfalfa crop removes 60 lb P2O5 and 400 lb K2O per year - must be replaced!"], yield_effect: [-15, 20, -10] },
+        { name: "Spray / Pest Control", question: "Alfalfa weevil larvae are chewing leaf tissue heavily. When should you spray?", choices: ["Spray immediately when you see any larvae", "Cut alfalfa early instead of spraying", "Monitor using degree-day model and spray at threshold"], correct: 2, okay: 1, feedback: ["WRONG: Early spray kills beneficial insects and weevil may not be at economic threshold yet.\nModern fact: Alfalfa has 1800+ beneficial insect species. Pesticides disrupt natural enemy populations for years.", "OKAY: Early cutting removes larvae with the hay - works well if close to cutting anyway.\nModern fact: Early cutting removes 70% of weevil larvae in the harvested hay - elegant biological solution!", "CORRECT! Degree-day model predicts exact larval development - spray only at threshold!\nFuture tech: UC IPM online tool calculates alfalfa weevil degree days from nearest weather station automatically!"], yield_effect: [-10, 8, 20] },
+        { name: "Machinery", question: "First cutting is ready. Alfalfa at 10% bloom stage. How will you harvest for maximum quality?", choices: ["Mow, ted, rake next day, bale when dry", "Mow with conditioner, windrow, bale at 18% moisture", "Mow with conditioner, ted, bale at 15% moisture (ideal)"], correct: 2, okay: 1, feedback: ["WRONG: Without conditioning, alfalfa stem takes 4 days to dry - leaves fall off losing protein!\nModern fact: Alfalfa leaves have 28% protein vs 8% for stems. Leaf loss during slow drying cuts value dramatically.", "OKAY: Baling at 18% moisture risks heating in bale and mold - value loss in storage.\nModern fact: Alfalfa baled above 16% moisture generates heat from fermentation damaging protein digestibility.", "CORRECT! Conditioner + ted + bale at 15% is perfect process for premium dairy hay!\nFuture tech: In-line NIR sensors on baler measure protein and moisture of every bale as it goes into the chamber!"], yield_effect: [-15, 5, 20] },
+        { name: "Monitor Crop", question: "How do you know exactly when to cut alfalfa for maximum quality AND quantity?", choices: ["Count 28 days from last cutting", "Look for 10% bloom on stand", "Use PEAQ stick + quality test combination"], correct: 2, okay: 1, feedback: ["WRONG: Fixed 28-day schedule ignores temperature variation - quality drops fast in hot weather!\nModern fact: In 100F weather alfalfa lignifies in 20 days. In 75F weather it takes 35 days for same quality drop.", "OKAY: 10% bloom is traditional indicator of RFQ 150 quality - works well as visual guide.\nModern fact: First bloom means alfalfa has peak digestible fiber - cutting now gives best dairy cow performance.", "CORRECT! PEAQ stick measures plant height + stem maturity giving actual RFQ value in field!\nFuture tech: Hyperspectral cameras on drones now predict alfalfa NDF and protein content from above the field!"], yield_effect: [-8, 12, 20] },
+        { name: "Post-Harvest", question: "You baled 7 tons/acre of high-quality alfalfa. Who will you sell to for best price?", choices: ["Local hay dealer at spot price", "Direct contract with dairy farm", "Export to Japan or China through hay exporter"], correct: 2, okay: 1, feedback: ["WRONG: Hay dealer markup is 25-30%. You are giving away most of your margin!\nModern fact: Central Valley hay dealers buy at $180/ton and sell to dairy at $240/ton - you lose $60/ton!", "OKAY: Direct dairy contracts give better price and guaranteed volume all season.\nModern fact: California dairy farms pay $220-240/ton for premium RFQ 150+ alfalfa on direct 1-year contracts.", "CORRECT! Export alfalfa to Japan or Korea earns $320-380/ton - double domestic price!\nFuture tech: Compressed alfalfa cubes and pellets reduce shipping cost by 40% making export economics even better!"], yield_effect: [-10, 12, 20] }
+      ]
+    }
+  }
+};
+
+// ── Game State ──
+const state = {
+  character: null, region: null, cropName: null, crop: null,
+  stepIndex: 0, totalYield: 100, techScore: 0, choicesMade: []
+};
+
+// ── Navigation ──
+function goTo(screenName) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screenName).classList.add('active');
+  window.scrollTo(0, 0);
+  if (screenName === 'character') buildCharScreen();
+  if (screenName === 'region') buildRegionScreen();
+  if (screenName === 'crop') buildCropScreen();
+  if (screenName === 'step') buildStepScreen();
+  if (screenName === 'result') buildResultScreen();
+  if (screenName === 'advisor') buildAdvisorScreen();
+}
+
+// ── CHARACTER SCREEN ──
+function buildCharScreen() {
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+  for (const [name, info] of Object.entries(gameData.characters)) {
+    const card = document.createElement('div');
+    card.className = 'char-card';
+    card.innerHTML = `
+      <div class="card-header" style="background:${info.color}">
+        <span class="card-emoji">${info.emoji}</span>${name}
+      </div>
+      <div class="card-body">
+        <div class="card-desc">${info.desc}</div>
+        <div class="card-bonus">✓ ${info.bonus}</div>
+        <button class="btn btn-green card-btn">Choose ${name.split(' ')[0]}</button>
+      </div>`;
+    card.querySelector('button').addEventListener('click', () => { state.character = name; goTo('region'); });
+    grid.appendChild(card);
+  }
+}
+
+// ── REGION SCREEN ──
+function buildRegionScreen() {
+  document.getElementById('region-sub').textContent = 'Character: ' + (state.character || '');
+  const grid = document.getElementById('region-grid');
+  grid.innerHTML = '';
+  const regionInfo = {
+    'Punjab, India': { color: '#7A4A00', crops: 'Wheat, Rice, Cotton, Maize, Mustard', desc: "North India's food bowl. 5 major crops with deep agricultural tradition and modern challenges.", flag: '🇮🇳' },
+    'USA': { color: '#1A4A7A', crops: 'Corn, Soybean, Sunflower, Alfalfa', desc: "World's largest agricultural exporter. Technology-driven farming on large-scale operations.", flag: '🇺🇸' }
+  };
+  for (const [region, info] of Object.entries(regionInfo)) {
+    const card = document.createElement('div');
+    card.className = 'region-card';
+    card.innerHTML = `
+      <div class="region-header" style="background:${info.color}">${info.flag} ${region}</div>
+      <div class="region-body">
+        <div class="region-crops">🌾 Crops: ${info.crops}</div>
+        <div class="region-desc">${info.desc}</div>
+        <button class="btn btn-green" style="margin-top:12px;width:100%">Farm in ${region}</button>
+      </div>`;
+    card.querySelector('button').addEventListener('click', () => { state.region = region; goTo('crop'); });
+    grid.appendChild(card);
+  }
+}
+
+// ── CROP SCREEN ──
+function buildCropScreen() {
+  document.getElementById('crop-sub').textContent = 'Region: ' + (state.region || '') + '  |  Character: ' + (state.character || '');
+  const grid = document.getElementById('crop-grid');
+  grid.innerHTML = '';
+  const crops = gameData.regions[state.region] || [];
+  crops.forEach(cropName => {
+    const cdata = gameData.crops[cropName];
+    const short = cropName.replace(' (Punjab)', '').replace(' (USA)', '');
+    const card = document.createElement('div');
+    card.className = 'crop-card';
+    card.innerHTML = `
+      <div class="crop-header">${short}</div>
+      <div class="crop-body">
+        <div class="crop-season">${cdata.season}</div>
+        <div class="crop-desc">${cdata.description.substring(0, 80)}...</div>
+        <button class="btn btn-green" style="margin-top:10px;width:100%;font-size:0.78rem;">Grow ${short}</button>
+      </div>`;
+    card.querySelector('button').addEventListener('click', () => {
+      state.cropName = cropName; state.crop = gameData.crops[cropName];
+      state.stepIndex = 0; state.totalYield = 100; state.techScore = 0; state.choicesMade = [];
+      goTo('step');
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ── STEP SCREEN ──
+function buildStepScreen() {
+  const steps = state.crop.steps;
+  const step = steps[state.stepIndex];
+  const total = steps.length;
+  const short = state.cropName.replace(' (Punjab)', '').replace(' (USA)', '');
+  document.getElementById('step-title').textContent = 'STEP ' + (state.stepIndex + 1) + '/' + total + ': ' + step.name.toUpperCase();
+  document.getElementById('step-sub').textContent = short + '  |  ' + state.crop.region + '  |  Yield: ' + Math.round(state.totalYield) + ' pts  |  Tech: ' + state.techScore;
+  document.getElementById('progress-fill').style.width = ((state.stepIndex / total) * 100) + '%';
+  document.getElementById('step-crop-name').textContent = short;
+  document.getElementById('step-crop-season').textContent = state.crop.season;
+  document.getElementById('step-char-name').textContent = state.character ? state.character.split(' ')[0] : '';
+  document.getElementById('step-progress-label').textContent = 'Step ' + (state.stepIndex + 1) + ' of ' + total;
+  document.getElementById('step-question').textContent = step.question;
+  const container = document.getElementById('choices-container');
+  container.innerHTML = '';
+  ['A','B','C'].forEach((label, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn choice-btn-' + label.toLowerCase();
+    btn.innerHTML = `<span class="choice-letter">${label}</span><span>${step.choices[i]}</span>`;
+    btn.addEventListener('click', () => processChoice(i));
+    container.appendChild(btn);
+  });
+}
+
+// ── PROCESS CHOICE ──
+function processChoice(choiceIdx) {
+  const step = state.crop.steps[state.stepIndex];
+  const correct = step.correct;
+  const okay = step.okay !== undefined ? step.okay : -1;
+  const effect = step.yield_effect[choiceIdx];
+  state.totalYield = Math.max(10, state.totalYield + effect);
+  let feedbackType;
+  if (choiceIdx === correct) {
+    feedbackType = 'correct'; state.techScore += 10;
+    if (state.character === 'Agricultural Scientist') { state.totalYield += 2; state.techScore += 2; }
+  } else if (choiceIdx === okay) {
+    feedbackType = 'okay'; state.techScore += 3;
+  } else { feedbackType = 'wrong'; }
+  state.choicesMade.push({ step: step.name, choice: step.choices[choiceIdx], correct: choiceIdx === correct, effect });
+  buildFeedbackScreen(step, choiceIdx, feedbackType, effect);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-feedback').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── FEEDBACK SCREEN ──
+function buildFeedbackScreen(step, choiceIdx, feedbackType, effect) {
+  const short = state.cropName.replace(' (Punjab)', '').replace(' (USA)', '');
+  document.getElementById('feedback-title').textContent = 'STEP ' + (state.stepIndex + 1) + ': ' + step.name.toUpperCase() + ' - RESULT';
+  document.getElementById('feedback-sub').textContent = short + '  |  Yield: ' + Math.round(state.totalYield) + ' pts  |  Tech Score: ' + state.techScore;
+  const banner = document.getElementById('feedback-banner');
+  if (feedbackType === 'correct') { banner.className = 'feedback-banner feedback-correct'; banner.textContent = '✓ CORRECT CHOICE! Great farming decision!'; }
+  else if (feedbackType === 'okay') { banner.className = 'feedback-banner feedback-okay'; banner.textContent = '~ OKAY CHOICE. Could be better — read the modern approach below.'; }
+  else { banner.className = 'feedback-banner feedback-wrong'; banner.textContent = '✗ WRONG CHOICE! This would hurt your crop. Learn the right approach below!'; }
+  const textBox = document.getElementById('feedback-text');
+  textBox.innerHTML = '';
+  step.feedback[choiceIdx].split('\n').forEach(line => {
+    const p = document.createElement('p');
+    p.style.marginBottom = '6px';
+    if (line.startsWith('CORRECT')) p.className = 'feedback-line-correct';
+    else if (line.startsWith('OKAY')) p.className = 'feedback-line-okay';
+    else if (line.startsWith('WRONG')) p.className = 'feedback-line-wrong';
+    else if (line.startsWith('Modern fact:') || line.startsWith('Future tech:')) p.className = 'feedback-line-fact';
+    else p.className = 'feedback-line-normal';
+    p.textContent = line;
+    textBox.appendChild(p);
+  });
+  const effectEl = document.getElementById('fb-effect');
+  effectEl.textContent = (effect >= 0 ? '+' : '') + effect + ' pts';
+  effectEl.style.color = effect >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('fb-yield').textContent = Math.round(state.totalYield) + ' / 200';
+  document.getElementById('fb-tech').textContent = state.techScore + ' pts';
+  document.getElementById('student-bonus-box').style.display = state.character === 'Agriculture Student' ? 'block' : 'none';
+  const nextBtn = document.getElementById('next-btn');
+  if (state.stepIndex < state.crop.steps.length - 1) {
+    nextBtn.textContent = '→ Next: Step ' + (state.stepIndex + 2) + ' - ' + state.crop.steps[state.stepIndex + 1].name;
+  } else { nextBtn.textContent = '🏆 See Final Results!'; }
+}
+
+function nextStep() {
+  if (state.stepIndex < state.crop.steps.length - 1) { state.stepIndex++; goTo('step'); }
+  else { goTo('result'); }
+}
+
+function restartCrop() {
+  state.stepIndex = 0; state.totalYield = 100; state.techScore = 0; state.choicesMade = [];
+  goTo('step');
+}
+
+// ── RESULT SCREEN ──
+function buildResultScreen() {
+  const short = state.cropName ? state.cropName.replace(' (Punjab)', '').replace(' (USA)', '') : '';
+  document.getElementById('result-title').textContent = 'HARVEST RESULTS - ' + short.toUpperCase();
+  document.getElementById('result-sub').textContent = 'Character: ' + (state.character || '') + '  |  Region: ' + (state.region || '');
+  const y = state.totalYield;
+  let grade, gradeColor, gradeMsg;
+  if (y >= 160) { grade = 'A+'; gradeColor = 'var(--green)'; gradeMsg = 'OUTSTANDING FARMER! You mastered every decision!'; }
+  else if (y >= 140) { grade = 'A'; gradeColor = 'var(--green)'; gradeMsg = 'Excellent work! You made mostly right choices.'; }
+  else if (y >= 120) { grade = 'B'; gradeColor = 'var(--yellow)'; gradeMsg = 'Good farming! A few decisions could be improved.'; }
+  else if (y >= 100) { grade = 'C'; gradeColor = 'var(--yellow)'; gradeMsg = 'Average yield. Review your wrong choices to improve.'; }
+  else { grade = 'D'; gradeColor = 'var(--red)'; gradeMsg = 'Crop struggled. Study the tech facts and try again!'; }
+  const gradeEl = document.getElementById('result-grade');
+  gradeEl.textContent = grade; gradeEl.style.color = gradeColor;
+  document.getElementById('result-grade-msg').textContent = gradeMsg;
+  document.getElementById('result-grade-msg').style.color = gradeColor;
+  document.getElementById('result-yield').textContent = Math.round(y) + ' / 200';
+  document.getElementById('result-tech').textContent = state.techScore + ' pts';
+  document.getElementById('result-total').textContent = Math.round(y) + state.techScore;
+  const summary = document.getElementById('result-choices');
+  summary.innerHTML = '';
+  state.choicesMade.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'choice-row';
+    const effText = (c.effect >= 0 ? '+' : '') + c.effect;
+    row.innerHTML = `<span class="${c.correct ? 'choice-marker-ok' : 'choice-marker-no'}">${c.correct ? '[OK]' : '[--]'}</span><span style="flex:1;color:var(--white)">${c.step}</span><span class="choice-effect ${c.effect >= 0 ? 'effect-pos' : 'effect-neg'}">${effText} pts</span>`;
+    summary.appendChild(row);
+  });
+}
+
+// ── ADVISOR SCREEN ──
+function buildAdvisorScreen() {
+  const short = state.cropName ? state.cropName.replace(' (Punjab)', '').replace(' (USA)', '') : 'your crop';
+  const region = state.region || 'your region';
+  const lines = [
+    { text: 'Hello! I am your Smart Farm AI Advisor.', cls: 'advisor-yellow' },
+    { text: '', cls: '' },
+    { text: 'Your farm summary:', cls: 'advisor-yellow' },
+    { text: '  Crop    : ' + (state.cropName || 'not selected'), cls: 'advisor-blue' },
+    { text: '  Region  : ' + (state.region || 'not selected'), cls: 'advisor-blue' },
+    { text: '  Character: ' + (state.character || 'not selected'), cls: 'advisor-blue' },
+    { text: '  Yield score : ' + Math.round(state.totalYield) + ' / 200 pts', cls: 'advisor-blue' },
+    { text: '  Tech score  : ' + state.techScore + ' pts', cls: 'advisor-blue' },
+    { text: '', cls: '' },
+    { text: 'To use a full AI advisor with live answers,', cls: '' },
+    { text: 'search your specific questions online or visit:', cls: '' },
+    { text: '  • PAU Ludhiana: pau.edu (Punjab agriculture)', cls: 'advisor-green' },
+    { text: '  • USDA Extension: extension.org (USA crops)', cls: 'advisor-green' },
+    { text: '  • IRRI: irri.org (Rice research)', cls: 'advisor-green' },
+    { text: '', cls: '' },
+    { text: 'Suggested questions to research:', cls: 'advisor-yellow' },
+    { text: '  - Why is ' + short + ' important in ' + region + '?', cls: 'advisor-green' },
+    { text: '  - What is the best modern irrigation for ' + short + '?', cls: 'advisor-green' },
+    { text: '  - How do drones help in ' + short + ' farming?', cls: 'advisor-green' },
+    { text: '  - What future technologies will change ' + short + ' farming?', cls: 'advisor-green' },
+  ];
+  const container = document.getElementById('advisor-text');
+  container.innerHTML = '';
+  lines.forEach(l => {
+    const p = document.createElement('p');
+    p.textContent = l.text || '\u00a0';
+    if (l.cls) p.className = l.cls;
+    p.style.marginBottom = '3px';
+    container.appendChild(p);
+  });
+}
+
+// Start on welcome screen (already active by default)
+buildCharScreen();
+</script>
+</body>
+</html>
